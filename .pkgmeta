@@ -1,0 +1,23 @@
+package-as: TankRoutes
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - images
+  - README.md
+  - CURSEFORGE.md
+  - CHANGELOG.md
+  - .gitignore
+  - .pkgmeta
+  - .github
+  - "*.svg"
+  - "*.png"
+  - "*.jpg"
+  - RELEASE.md
+  - docs
+  - tests
+  - tools
+  - .luacheckrc
+  - .busted
