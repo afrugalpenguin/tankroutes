@@ -174,6 +174,8 @@ local function create()
     fit:SetPoint("RIGHT", close, "LEFT", 0, 0)
     fit:SetText("Fit")
     fit:SetScript("OnClick", W.Fit)
+    close:SetFrameLevel(bar:GetFrameLevel() + 2)
+    fit:SetFrameLevel(bar:GetFrameLevel() + 2)
 
     viewport = CreateFrame("Frame", nil, frame)
     viewport:SetPoint("TOPLEFT", 4, -22)
