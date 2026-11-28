@@ -10,9 +10,11 @@
 Core.lua
 Core/Geometry.lua
 Core/Route.lua
+Core/Edit.lua
 Data/Maps.lua
 Data/Art.lua
 Data/Routes.lua
 UI/MapWindow.lua
 UI/RouteLayer.lua
+UI/Editor.lua
 UI/Slash.lua

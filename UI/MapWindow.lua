@@ -11,8 +11,9 @@ local MIN_W, MIN_H = 200, 150
 local MIN_ZOOM, MAX_ZOOM = 1, 8
 local ZOOM_STEP = 1.25
 local MARGIN = 0.06
+local CLICK_SLOP = 4   -- a press and release closer than this many pixels is a click
 
-local frame, viewport, canvas, title, emptyText, prevFloor, nextFloor
+local frame, viewport, canvas, title, emptyText, prevFloor, nextFloor, editButton, undoButton
 local roomTextures = {}
 local roomTurns = {}   -- quarter turns per room, or false when drawn with SetRotation
 
@@ -26,6 +27,7 @@ local TURNS = {
 local view       -- { k, cu, cv, w, h, fitK }
 local current    -- { id, kind = "art" or "rooms", map, floor, rooms, bounds }
 local dragging   -- { x, y } last cursor position while panning
+local press      -- { x, y } cursor position at the last left press, to tell clicks from drags
 
 local function setColor(tex, r, g, b, a)
     if tex.SetColorTexture then
@@ -73,6 +75,53 @@ function W.ToMapSpace(p)
         return G.ArtToMap(p[1], p[2])
     end
     return p[1], p[2]
+end
+
+-- The inverse of ToMapSpace: map space to route point coordinates.
+function W.ToRouteSpace(u, v)
+    if current and current.kind == "art" then
+        return G.MapToArt(u, v)
+    end
+    return u, v
+end
+
+-- The instance ID of the map shown, or nil.
+function W.CurrentID()
+    return current and current.id
+end
+
+function W.CurrentView()
+    return view
+end
+
+function W.GetFrame()
+    return frame
+end
+
+-- The cursor in view pixels from the viewport's top-left, y down.
+function W.CursorInView()
+    local x, y = GetCursorPosition()
+    local s = viewport:GetEffectiveScale()
+    return x / s - viewport:GetLeft(), viewport:GetTop() - y / s
+end
+
+-- Edit button label and Undo button for edit mode.
+function W.SetEditing(on)
+    if not frame then
+        return
+    end
+    editButton:SetText(on and "Done" or "Edit")
+    if on then undoButton:Show() else undoButton:Hide() end
+end
+
+-- The route to show: the user's saved route when valid, else the bundled one.
+local function activeRoute(id)
+    local r, _, err = TR.Edit.Active(TankRoutesDB, TR.Routes, id)
+    if err then
+        TR:Print("Saved route for instance " .. tostring(id) .. " is invalid (" .. err
+            .. "), showing the bundled route.")
+    end
+    return r
 end
 
 -- Hide every pooled texture, then set up one per room. Returns how many images did not load.
@@ -160,6 +209,17 @@ function W.Layout()
     if TR.RouteLayer then
         TR.RouteLayer.Draw(view)
     end
+end
+
+-- Pick up a changed route (after an edit, undo or reset) and redraw.
+function W.ReloadRoute()
+    if not current then
+        return
+    end
+    if TR.RouteLayer then
+        TR.RouteLayer.SetRoute(activeRoute(current.id))
+    end
+    W.Layout()
 end
 
 function W.Fit()
@@ -255,7 +315,6 @@ local function create()
 
     title = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     title:SetPoint("LEFT", 6, 0)
-    title:SetPoint("RIGHT", -100, 0)
     title:SetJustifyH("LEFT")
 
     local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -286,10 +345,28 @@ local function create()
     end)
     prevFloor:Hide()
 
-    close:SetFrameLevel(bar:GetFrameLevel() + 2)
-    fit:SetFrameLevel(bar:GetFrameLevel() + 2)
-    nextFloor:SetFrameLevel(bar:GetFrameLevel() + 2)
-    prevFloor:SetFrameLevel(bar:GetFrameLevel() + 2)
+    editButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    editButton:SetSize(40, 16)
+    editButton:SetPoint("RIGHT", prevFloor, "LEFT", -2, 0)
+    editButton:SetText("Edit")
+    editButton:SetScript("OnClick", function()
+        if TR.Editor then TR.Editor.Toggle() end
+    end)
+
+    undoButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    undoButton:SetSize(40, 16)
+    undoButton:SetPoint("RIGHT", editButton, "LEFT", 0, 0)
+    undoButton:SetText("Undo")
+    undoButton:SetScript("OnClick", function()
+        if TR.Editor then TR.Editor.Undo() end
+    end)
+    undoButton:Hide()
+
+    title:SetPoint("RIGHT", undoButton, "LEFT", -2, 0)
+
+    for _, b in ipairs({ close, fit, nextFloor, prevFloor, editButton, undoButton }) do
+        b:SetFrameLevel(bar:GetFrameLevel() + 2)
+    end
 
     viewport = CreateFrame("Frame", nil, frame)
     viewport:SetPoint("TOPLEFT", 4, -22)
@@ -302,9 +379,21 @@ local function create()
         if button == "LeftButton" then
             local x, y = cursor()
             dragging = { x = x, y = y }
+            press = { x = x, y = y }
         end
     end)
-    viewport:SetScript("OnMouseUp", function() dragging = nil end)
+    viewport:SetScript("OnMouseUp", function(_, button)
+        dragging = nil
+        if button ~= "LeftButton" or not press then
+            return
+        end
+        local x, y = cursor()
+        local moved = math.abs(x - press.x) + math.abs(y - press.y)
+        press = nil
+        if moved < CLICK_SLOP and TR.Editor and TR.Editor.IsActive() then
+            TR.Editor.OnMapClick()
+        end
+    end)
     viewport:SetScript("OnUpdate", onUpdate)
     viewport:SetScript("OnHide", function() dragging = nil end)
 
@@ -323,6 +412,9 @@ local function create()
     grip:SetScript("OnMouseUp", function() frame:StopMovingOrSizing(); saveGeometry() end)
 
     frame:SetScript("OnSizeChanged", W.Layout)
+    frame:SetScript("OnHide", function()
+        if TR.Editor then TR.Editor.SetActive(false) end
+    end)
 end
 
 -- Show the map for an instance ID. Prints and shows a message when there is none.
@@ -334,6 +426,9 @@ function W.ShowMap(id, displayName)
         tex:Hide()
     end
     current, view = nil, nil
+    if TR.Editor then
+        TR.Editor.OnMapChanged()
+    end
 
     local art = TR.Art and TR.Art[id]
     local map = TR.Maps and TR.Maps[id]
@@ -348,6 +443,7 @@ function W.ShowMap(id, displayName)
         title:SetText("Tank Routes")
         prevFloor:Hide()
         nextFloor:Hide()
+        if editButton.SetEnabled then editButton:SetEnabled(false) end
         emptyText:SetText("No map for " .. name .. " yet")
         emptyText:Show()
         if TR.RouteLayer then TR.RouteLayer.SetRoute(nil) end
@@ -357,10 +453,11 @@ function W.ShowMap(id, displayName)
     end
 
     emptyText:Hide()
+    if editButton.SetEnabled then editButton:SetEnabled(true) end
     reportFailed(applyRooms(current.rooms))
 
     if TR.RouteLayer then
-        TR.RouteLayer.SetRoute(TR.Routes and TR.Routes[id])
+        TR.RouteLayer.SetRoute(activeRoute(id))
     end
     updateTitle()
     frame:Show()
