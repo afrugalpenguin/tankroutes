@@ -93,28 +93,36 @@ function L.Draw(view)
         return
     end
     local canvas = TR.MapWindow.GetCanvas()
+    local floor = TR.MapWindow.CurrentFloor()
     local pts = route.points
-    local screen = {}
+    local screen, here = {}, {}
     for i, p in ipairs(pts) do
-        local x, y = G.ToScreen(p[1], p[2], view)
+        local u, v = TR.MapWindow.ToMapSpace(p)
+        local x, y = G.ToScreen(u, v, view)
         screen[i] = { x, y }
+        here[i] = (p.floor or 1) == floor
     end
     for i = 1, #pts - 1 do
-        local l = line(i, canvas)
-        l:SetStartPoint("TOPLEFT", canvas, screen[i][1], -screen[i][2])
-        l:SetEndPoint("TOPLEFT", canvas, screen[i + 1][1], -screen[i + 1][2])
-        l:Show()
+        if here[i] and here[i + 1] then
+            local l = line(i, canvas)
+            l:SetStartPoint("TOPLEFT", canvas, screen[i][1], -screen[i][2])
+            l:SetEndPoint("TOPLEFT", canvas, screen[i + 1][1], -screen[i + 1][2])
+            l:Show()
+        elseif lines[i] then
+            lines[i]:Hide()
+        end
     end
     -- Stops are pooled by stop number, so a hovered button keeps its stop.
+    -- Numbers are global across floors.
     local nums, n = TR.Route.StopNumbers(pts)
     local m = STOP_SIZE / 2
     for i, p in ipairs(pts) do
         if nums[i] then
-            local b = stop(nums[i], canvas)
             local x, y = screen[i][1], screen[i][2]
-            if x < -m or x > view.w + m or y < -m or y > view.h + m then
-                hideStop(b)
+            if not here[i] or x < -m or x > view.w + m or y < -m or y > view.h + m then
+                if stops[nums[i]] then hideStop(stops[nums[i]]) end
             else
+                local b = stop(nums[i], canvas)
                 b.number, b.note = nums[i], p.note
                 b.num:SetText(tostring(nums[i]))
                 b:EnableMouse(p.note ~= nil)

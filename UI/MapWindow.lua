@@ -12,7 +12,7 @@ local MIN_ZOOM, MAX_ZOOM = 1, 8
 local ZOOM_STEP = 1.25
 local MARGIN = 0.06
 
-local frame, viewport, canvas, title, emptyText
+local frame, viewport, canvas, title, emptyText, prevFloor, nextFloor
 local roomTextures = {}
 local roomTurns = {}   -- quarter turns per room, or false when drawn with SetRotation
 
@@ -24,7 +24,7 @@ local TURNS = {
     [3] = { 0, 1, 1, 1, 0, 0, 1, 0 },
 }
 local view       -- { k, cu, cv, w, h, fitK }
-local current    -- { id, map, bounds }
+local current    -- { id, kind = "art" or "rooms", map, floor, rooms, bounds }
 local dragging   -- { x, y } last cursor position while panning
 
 local function setColor(tex, r, g, b, a)
@@ -62,13 +62,90 @@ function W.GetCanvas()
     return canvas
 end
 
+-- The floor shown, for the route layer (1 when nothing is shown).
+function W.CurrentFloor()
+    return current and current.floor or 1
+end
+
+-- A route point in map space: painted maps use 0 to 1 positions, room maps world yards.
+function W.ToMapSpace(p)
+    if current and current.kind == "art" then
+        return G.ArtToMap(p[1], p[2])
+    end
+    return p[1], p[2]
+end
+
+-- Hide every pooled texture, then set up one per room. Returns how many images did not load.
+local function applyRooms(rooms)
+    for _, tex in ipairs(roomTextures) do
+        tex:Hide()
+    end
+    local failed = 0
+    for i, r in ipairs(rooms) do
+        local tex = roomTextures[i]
+        if not tex then
+            tex = canvas:CreateTexture(nil, "ARTWORK")
+            roomTextures[i] = tex
+        end
+        tex:SetDrawLayer("ARTWORK", math.max(-8, math.min(7, r[7] or 0)))
+        tex:SetVertexColor(1, 1, 1, 1)
+        if tex:SetTexture(r[1]) == false then
+            -- the image did not load: show the room as a grey box so the layout still reads
+            failed = failed + 1
+            setColor(tex, 0.4, 0.4, 0.4, 0.5)
+        end
+        local turn = G.QuarterTurn(r[6] or 0)
+        roomTurns[i] = turn or false
+        if turn then
+            if tex.SetRotation then
+                tex:SetRotation(0)
+            end
+            tex:SetTexCoord(unpack(TURNS[turn]))
+        else
+            tex:SetTexCoord(0, 1, 0, 1)
+            if tex.SetRotation then
+                tex:SetRotation(r[6])
+            end
+        end
+        tex:Show()
+    end
+    return failed
+end
+
+-- Print how many images of the current map did not load, if any.
+local function reportFailed(failed)
+    if failed > 0 then
+        TR:Print(failed .. " of " .. #current.rooms .. " map images did not load for "
+            .. current.map.name .. ".")
+    end
+end
+
+-- Title and floor buttons for the current map.
+local function updateTitle()
+    local map = current.map
+    local count = current.kind == "art" and #map.floors or 1
+    if count > 1 then
+        title:SetText(map.name .. " (" .. current.floor .. "/" .. count .. ")")
+        prevFloor:Show()
+        nextFloor:Show()
+        if prevFloor.SetEnabled then
+            prevFloor:SetEnabled(current.floor > 1)
+            nextFloor:SetEnabled(current.floor < count)
+        end
+    else
+        title:SetText(map.name)
+        prevFloor:Hide()
+        nextFloor:Hide()
+    end
+end
+
 -- Position every room for the current view, then redraw the route on top.
 function W.Layout()
     if not current or not view then
         return
     end
     view.w, view.h = viewport:GetWidth(), viewport:GetHeight()
-    for i, r in ipairs(current.map.rooms) do
+    for i, r in ipairs(current.rooms) do
         local tex = roomTextures[i]
         local x, y = G.ToScreen(r[2], r[3], view)
         tex:ClearAllPoints()
@@ -97,6 +174,22 @@ function W.Fit()
     local b = current.bounds
     local k = G.FitScale(b, viewport:GetWidth(), viewport:GetHeight(), MARGIN)
     view = { k = k, fitK = k, cu = (b[1] + b[3]) / 2, cv = (b[2] + b[4]) / 2 }
+    W.Layout()
+end
+
+-- Show floor n of a painted map. Keeps the zoom and pan: every floor shares the art space.
+function W.SetFloor(n)
+    if not current or current.kind ~= "art" then
+        return
+    end
+    n = math.max(1, math.min(#current.map.floors, n))
+    if n == current.floor then
+        return
+    end
+    current.floor = n
+    current.rooms = G.ArtRooms(current.map.floors[n].path)
+    reportFailed(applyRooms(current.rooms))
+    updateTitle()
     W.Layout()
 end
 
@@ -162,7 +255,7 @@ local function create()
 
     title = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     title:SetPoint("LEFT", 6, 0)
-    title:SetPoint("RIGHT", -60, 0)
+    title:SetPoint("RIGHT", -100, 0)
     title:SetJustifyH("LEFT")
 
     local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -174,8 +267,29 @@ local function create()
     fit:SetPoint("RIGHT", close, "LEFT", 0, 0)
     fit:SetText("Fit")
     fit:SetScript("OnClick", W.Fit)
+
+    nextFloor = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    nextFloor:SetSize(16, 16)
+    nextFloor:SetPoint("RIGHT", fit, "LEFT", -2, 0)
+    nextFloor:SetText(">")
+    nextFloor:SetScript("OnClick", function()
+        if current then W.SetFloor(current.floor + 1) end
+    end)
+    nextFloor:Hide()
+
+    prevFloor = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    prevFloor:SetSize(16, 16)
+    prevFloor:SetPoint("RIGHT", nextFloor, "LEFT", 0, 0)
+    prevFloor:SetText("<")
+    prevFloor:SetScript("OnClick", function()
+        if current then W.SetFloor(current.floor - 1) end
+    end)
+    prevFloor:Hide()
+
     close:SetFrameLevel(bar:GetFrameLevel() + 2)
     fit:SetFrameLevel(bar:GetFrameLevel() + 2)
+    nextFloor:SetFrameLevel(bar:GetFrameLevel() + 2)
+    prevFloor:SetFrameLevel(bar:GetFrameLevel() + 2)
 
     viewport = CreateFrame("Frame", nil, frame)
     viewport:SetPoint("TOPLEFT", 4, -22)
@@ -221,10 +335,19 @@ function W.ShowMap(id, displayName)
     end
     current, view = nil, nil
 
+    local art = TR.Art and TR.Art[id]
     local map = TR.Maps and TR.Maps[id]
-    if not map then
+    if art then
+        current = { id = id, kind = "art", map = art, floor = 1,
+            rooms = G.ArtRooms(art.floors[1].path), bounds = { unpack(G.ART_BOUNDS) } }
+    elseif map then
+        current = { id = id, kind = "rooms", map = map, floor = 1,
+            rooms = map.rooms, bounds = G.Bounds(map.rooms) }
+    else
         local name = displayName or ("instance " .. tostring(id))
         title:SetText("Tank Routes")
+        prevFloor:Hide()
+        nextFloor:Hide()
         emptyText:SetText("No map for " .. name .. " yet")
         emptyText:Show()
         if TR.RouteLayer then TR.RouteLayer.SetRoute(nil) end
@@ -234,44 +357,12 @@ function W.ShowMap(id, displayName)
     end
 
     emptyText:Hide()
-    title:SetText(map.name)
-    local failed = 0
-    for i, r in ipairs(map.rooms) do
-        local tex = roomTextures[i]
-        if not tex then
-            tex = canvas:CreateTexture(nil, "ARTWORK")
-            roomTextures[i] = tex
-        end
-        tex:SetDrawLayer("ARTWORK", math.max(-8, math.min(7, r[7] or 0)))
-        tex:SetVertexColor(1, 1, 1, 1)
-        if tex:SetTexture(r[1]) == false then
-            -- the image did not load: show the room as a grey box so the layout still reads
-            failed = failed + 1
-            setColor(tex, 0.4, 0.4, 0.4, 0.5)
-        end
-        local turn = G.QuarterTurn(r[6] or 0)
-        roomTurns[i] = turn or false
-        if turn then
-            if tex.SetRotation then
-                tex:SetRotation(0)
-            end
-            tex:SetTexCoord(unpack(TURNS[turn]))
-        else
-            tex:SetTexCoord(0, 1, 0, 1)
-            if tex.SetRotation then
-                tex:SetRotation(r[6])
-            end
-        end
-        tex:Show()
-    end
-    if failed > 0 then
-        TR:Print(failed .. " of " .. #map.rooms .. " room images did not load for " .. map.name .. ".")
-    end
+    reportFailed(applyRooms(current.rooms))
 
-    current = { id = id, map = map, bounds = G.Bounds(map.rooms) }
     if TR.RouteLayer then
         TR.RouteLayer.SetRoute(TR.Routes and TR.Routes[id])
     end
+    updateTitle()
     frame:Show()
     W.Fit()
 end

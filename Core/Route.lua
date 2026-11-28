@@ -1,5 +1,6 @@
 -- Tank Routes: route rules. Pure functions, no WoW calls.
 -- A route is { instanceID, title, version = 1, points = { { u, v, stop = true, note = "..." }, { u, v } } }.
+-- A point may also carry floor = n (optional, painted maps only, default 1): an index into the dungeon's floor list.
 -- Stop numbers are never stored; they come from the order of the points.
 local _, TR = ...
 TR = TR or TankRoutes
@@ -51,6 +52,10 @@ function R.Validate(route)
         end
         if p.note ~= nil and (type(p.note) ~= "string" or not p.stop) then
             return false, "point " .. i .. " has an invalid note"
+        end
+        local f = p.floor
+        if f ~= nil and (type(f) ~= "number" or f < 1 or f % 1 ~= 0) then
+            return false, "point " .. i .. " has an invalid floor"
         end
     end
     return true
