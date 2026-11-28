@@ -21,13 +21,20 @@ function R.StopNumbers(points)
     return nums, n
 end
 
+local function isFinite(x)
+    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
+end
+
 -- Returns true, or false and a message saying what is wrong.
 function R.Validate(route)
     if type(route) ~= "table" then
         return false, "route is not a table"
     end
     if type(route.instanceID) ~= "number" then
-        return false, "instanceID missing"
+        return false, "instanceID must be a number"
+    end
+    if type(route.title) ~= "string" then
+        return false, "title missing"
     end
     if route.version ~= R.VERSION then
         return false, "unsupported version " .. tostring(route.version)
@@ -36,7 +43,10 @@ function R.Validate(route)
         return false, "points missing"
     end
     for i, p in ipairs(route.points) do
-        if type(p[1]) ~= "number" or type(p[2]) ~= "number" then
+        if type(p) ~= "table" then
+            return false, "point " .. i .. " is not a table"
+        end
+        if not isFinite(p[1]) or not isFinite(p[2]) then
             return false, "point " .. i .. " has no coordinates"
         end
         if p.note ~= nil and (type(p.note) ~= "string" or not p.stop) then
