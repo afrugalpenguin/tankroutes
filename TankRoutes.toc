@@ -2,6 +2,7 @@
 ## Title: Tank Routes
 ## Notes: Dungeon map window with tank routes, for learning dungeons
 ## Author: Lightborn
+## X-License: GPL-3.0-or-later
 ## Version: @project-version@
 ## SavedVariables: TankRoutesDB
 ## IconTexture: Interface\Icons\INV_Shield_06
