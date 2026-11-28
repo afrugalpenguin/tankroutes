@@ -25,10 +25,21 @@ function TR.HandleSlash(msg)
         TR.MapWindow.ShowMap(id)
     elseif cmd == "list" then
         local ids = {}
-        for id in pairs(TR.Maps) do ids[#ids + 1] = id end
+        local seen = {}
+        for id in pairs(TR.Art) do seen[id] = true; ids[#ids + 1] = id end
+        for id in pairs(TR.Maps) do
+            if not seen[id] then ids[#ids + 1] = id end
+        end
         table.sort(ids)
         for _, id in ipairs(ids) do
-            TR:Print(id .. ": " .. TR.Maps[id].name .. " (" .. #TR.Maps[id].rooms .. " rooms)")
+            local art = TR.Art[id]
+            if art then
+                local n = #art.floors
+                TR:Print(id .. ": " .. art.name .. " (painted, " .. n .. (n == 1 and " floor)" or " floors)"))
+            else
+                local n = #TR.Maps[id].rooms
+                TR:Print(id .. ": " .. TR.Maps[id].name .. " (rooms, " .. n .. (n == 1 and " room)" or " rooms)"))
+            end
         end
     elseif cmd == "" then
         if TR.MapWindow.IsShown() then
