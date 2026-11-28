@@ -4,9 +4,10 @@ Tank Routes is licensed under the GNU General Public License v3.0 or later (see 
 Data\Maps.lua contains dungeon room layouts (room picture fileIDs, positions, sizes,
 rotations and floor levels). They come from Forever Simple World Map 0.30.2 by Tarolg,
 which OneForAll records as licensed under the MIT License below, and were taken from
-the data file of OneForAll by Smoergi (GPL-3.0-or-later), which includes that MIT data.
-Only dungeons whose layouts come from the MIT version are included. The room pictures
-themselves are the game client's own minimap images and belong to Blizzard Entertainment.
+the data file of OneForAll 6.3.0 by Smoergi (GPL-3.0-or-later), which includes that MIT
+data. Only dungeons whose layouts come from the MIT version are included. The room
+pictures themselves are the game client's own minimap images and belong to Blizzard
+Entertainment.
 
 MIT License
 
