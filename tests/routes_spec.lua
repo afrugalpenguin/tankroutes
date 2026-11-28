@@ -4,8 +4,10 @@ describe("Bundled routes", function()
     before_each(function()
         _G.TankRoutes = nil
         dofile("Core.lua")
+        dofile("Core/Geometry.lua")
         dofile("Core/Route.lua")
         dofile("Data/Maps.lua")
+        dofile("Data/Art.lua")
         dofile("Data/Routes.lua")
     end)
 
@@ -23,7 +25,22 @@ describe("Bundled routes", function()
 
     it("only exist for dungeons that have a map", function()
         for id in pairs(TankRoutes.Routes) do
-            assert.is_table(TankRoutes.Maps[id], "route " .. tostring(id) .. " has no map")
+            assert.is_table(TankRoutes.Art[id] or TankRoutes.Maps[id], "route " .. tostring(id) .. " has no map")
+        end
+    end)
+
+    it("use 0 to 1 positions and real floors on painted maps", function()
+        for id, route in pairs(TankRoutes.Routes) do
+            local art = TankRoutes.Art[id]
+            for i, p in ipairs(route.points) do
+                local where = "route " .. tostring(id) .. " point " .. i
+                if art then
+                    assert.is_true(p[1] >= 0 and p[1] <= 1 and p[2] >= 0 and p[2] <= 1, where)
+                    assert.is_true((p.floor or 1) <= #art.floors, where .. " floor")
+                else
+                    assert.is_true((p.floor or 1) == 1, where .. " floor on a room map")
+                end
+            end
         end
     end)
 end)
