@@ -113,5 +113,17 @@ describe("Route", function()
             assert.is_false(ok)
             assert.matches("point 1", err)
         end)
+
+        it("accepts a floor number", function()
+            assert.is_true(R.Validate(route({ { 0.5, 0.5, stop = true, floor = 2 } })))
+        end)
+
+        it("rejects a bad floor", function()
+            for _, f in ipairs({ 0, -1, 1.5, "2" }) do
+                local ok, err = R.Validate(route({ { 0.5, 0.5, floor = f } }))
+                assert.is_false(ok)
+                assert.matches("point 1", err)
+            end
+        end)
     end)
 end)
