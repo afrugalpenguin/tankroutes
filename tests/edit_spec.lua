@@ -157,7 +157,7 @@ describe("Edit", function()
             local r, source, err = E.Active(db, bundled, 36)
             assert.equals(bundled[36], r)
             assert.equals("bundled", source)
-            assert.matches("title", err)
+            assert.matches("instanceID", err)
             assert.same({ version = 1 }, db.routes[36])
         end)
 
