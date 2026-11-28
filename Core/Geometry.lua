@@ -66,3 +66,23 @@ function G.QuarterTurn(angle)
     end
     return nearest % 4
 end
+
+-- Painted dungeon art: 12 tiles of 256 px, 4 columns x 3 rows, visible area 1002 x 668.
+G.ART_W, G.ART_H = 1002, 668
+G.ART_BOUNDS = { 0, 0, G.ART_W, G.ART_H }
+
+-- The 12 tiles of one painted floor as rooms { path, u, v, 256, 256, 0, 0 },
+-- in art pixels, so the room drawing code can draw them.
+function G.ArtRooms(prefix)
+    local rooms = {}
+    for i = 1, 12 do
+        local col, row = (i - 1) % 4, math.floor((i - 1) / 4)
+        rooms[i] = { prefix .. i, 128 + col * 256, 128 + row * 256, 256, 256, 0, 0 }
+    end
+    return rooms
+end
+
+-- A 0 to 1 position on painted art (0, 0 top-left) in art pixels.
+function G.ArtToMap(x, y)
+    return x * G.ART_W, y * G.ART_H
+end
