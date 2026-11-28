@@ -22,21 +22,21 @@ describe("Core", function()
     end)
 
     it("mirrors printed lines into TankRoutesDB.log", function()
-        TankRoutesDB = {}
+        _G.TankRoutesDB = {}
         TankRoutes:Print("hello")
-        assert.same({ "hello" }, TankRoutesDB.log)
+        assert.same({ "hello" }, _G.TankRoutesDB.log)
     end)
 
     it("keeps at most 200 log lines", function()
-        TankRoutesDB = {}
+        _G.TankRoutesDB = {}
         for i = 1, 205 do TankRoutes:Print("line " .. i) end
-        assert.equals(200, #TankRoutesDB.log)
-        assert.equals("line 6", TankRoutesDB.log[1])
+        assert.equals(200, #_G.TankRoutesDB.log)
+        assert.equals("line 6", _G.TankRoutesDB.log[1])
     end)
 
     it("creates TankRoutesDB on ADDON_LOADED", function()
-        TankRoutesDB = nil
+        _G.TankRoutesDB = nil
         TankRoutes.OnEvent(nil, "ADDON_LOADED", "TankRoutes")
-        assert.is_table(TankRoutesDB)
+        assert.is_table(_G.TankRoutesDB)
     end)
 end)
