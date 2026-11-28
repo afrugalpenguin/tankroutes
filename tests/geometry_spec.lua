@@ -143,5 +143,66 @@ describe("Geometry", function()
             assert.equals(501, u)
             assert.equals(167, v)
         end)
+
+        it("converts art pixels back to 0 to 1 positions", function()
+            local x, y = G.MapToArt(G.ArtToMap(0.3, 0.8))
+            assert.near(0.3, x, 1e-9)
+            assert.near(0.8, y, 1e-9)
+        end)
+    end)
+
+    describe("ToMap", function()
+        it("reverses ToScreen", function()
+            local view = { k = 2.5, cu = 300, cv = -40, w = 280, h = 190 }
+            local x, y = G.ToScreen(123, 456, view)
+            local u, v = G.ToMap(x, y, view)
+            assert.near(123, u, 1e-9)
+            assert.near(456, v, 1e-9)
+        end)
+
+        it("puts the view centre at cu, cv", function()
+            local u, v = G.ToMap(50, 30, { k = 4, cu = 7, cv = 9, w = 100, h = 60 })
+            assert.equals(7, u)
+            assert.equals(9, v)
+        end)
+    end)
+
+    describe("NearestSegment", function()
+        local pts = { { 0, 0 }, { 100, 0 }, { 100, 100 } }
+
+        it("finds the segment under the cursor", function()
+            local i, d = G.NearestSegment(pts, 50, 3, 6)
+            assert.equals(1, i)
+            assert.near(3, d, 1e-9)
+            i = G.NearestSegment(pts, 98, 60, 6)
+            assert.equals(2, i)
+        end)
+
+        it("returns nil when nothing is close enough", function()
+            assert.is_nil(G.NearestSegment(pts, 50, 20, 6))
+        end)
+
+        it("measures to the segment ends, not the whole line", function()
+            assert.is_nil(G.NearestSegment({ { 0, 0 }, { 10, 0 } }, 20, 0, 6))
+        end)
+
+        it("skips segments with an end that is not drawn", function()
+            assert.is_nil(G.NearestSegment({ { 0, 0 }, false, { 100, 0 } }, 50, 0, 6))
+            assert.equals(2, G.NearestSegment({ false, { 0, 0 }, { 100, 0 } }, 50, 0, 6))
+        end)
+
+        it("picks the closer of two segments", function()
+            local i = G.NearestSegment({ { 0, 0 }, { 100, 0 }, { 100, 4 }, { 0, 4 } }, 50, 3, 6)
+            assert.equals(3, i)
+        end)
+
+        it("handles fewer than two points", function()
+            assert.is_nil(G.NearestSegment({}, 0, 0, 6))
+            assert.is_nil(G.NearestSegment({ { 0, 0 } }, 0, 0, 6))
+        end)
+
+        it("handles a zero-length segment", function()
+            assert.equals(1, G.NearestSegment({ { 5, 5 }, { 5, 5 } }, 6, 6, 6))
+        end)
     end)
 end)
