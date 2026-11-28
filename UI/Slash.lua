@@ -2,6 +2,7 @@
 --   /tr          toggle the window for the current dungeon
 --   /tr show ID  preview the map for an instance ID (works anywhere)
 --   /tr list     list the dungeons that have a map
+--   /tr reset    restore the bundled route for the map shown (undoable)
 local _, TR = ...
 TR = TR or TankRoutes
 
@@ -41,6 +42,8 @@ function TR.HandleSlash(msg)
                 TR:Print(id .. ": " .. TR.Maps[id].name .. " (rooms, " .. n .. (n == 1 and " room)" or " rooms)"))
             end
         end
+    elseif cmd == "reset" then
+        TR.Editor.Reset()
     elseif cmd == "" then
         if TR.MapWindow.IsShown() then
             TR.MapWindow.Hide()
@@ -53,6 +56,6 @@ function TR.HandleSlash(msg)
         end
         TR.MapWindow.ShowMap(id, name)
     else
-        TR:Print("Commands: /tr, /tr show <instanceID>, /tr list")
+        TR:Print("Commands: /tr, /tr show <instanceID>, /tr list, /tr reset")
     end
 end
