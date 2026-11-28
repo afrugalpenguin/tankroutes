@@ -12,15 +12,22 @@ local STOP_SIZE = 18
 local route
 local lines, stops = {}, {}
 
--- Hide everything drawn, and the tooltip if a stop owns it.
-local function hideAll()
-    for _, l in ipairs(lines) do l:Hide() end
-    for _, b in ipairs(stops) do
-        b:Hide()
-        if GameTooltip.IsOwned and GameTooltip:IsOwned(b) then
-            GameTooltip:Hide()
-        end
+-- Hide a stop, and the tooltip if the stop owns it.
+local function hideStop(b)
+    b:Hide()
+    if GameTooltip.IsOwned and GameTooltip:IsOwned(b) then
+        GameTooltip:Hide()
     end
+end
+
+-- Hide pool entries from the given indexes onward.
+local function hideFrom(firstLine, firstStop)
+    for i = firstLine, #lines do lines[i]:Hide() end
+    for i = firstStop, #stops do hideStop(stops[i]) end
+end
+
+local function hideAll()
+    hideFrom(1, 1)
 end
 
 -- Clears the old drawing too: the no-map path sets nil without a Draw.
@@ -69,14 +76,20 @@ local function stop(i, canvas)
             end
         end)
         b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        -- Pass presses to the viewport so a drag that starts on a stop pans.
+        b:SetScript("OnMouseDown", function(_, button)
+            local vp = canvas:GetParent()
+            local f = vp:GetScript("OnMouseDown")
+            if f then f(vp, button) end
+        end)
         stops[i] = b
     end
     return b
 end
 
 function L.Draw(view)
-    hideAll()
     if not route then
+        hideAll()
         return
     end
     local canvas = TR.MapWindow.GetCanvas()
@@ -92,17 +105,24 @@ function L.Draw(view)
         l:SetEndPoint("TOPLEFT", canvas, screen[i + 1][1], -screen[i + 1][2])
         l:Show()
     end
-    local nums = TR.Route.StopNumbers(pts)
-    local n = 0
+    -- Stops are pooled by stop number, so a hovered button keeps its stop.
+    local nums, n = TR.Route.StopNumbers(pts)
+    local m = STOP_SIZE / 2
     for i, p in ipairs(pts) do
         if nums[i] then
-            n = n + 1
-            local b = stop(n, canvas)
-            b.number, b.note = nums[i], p.note
-            b.num:SetText(tostring(nums[i]))
-            b:ClearAllPoints()
-            b:SetPoint("CENTER", canvas, "TOPLEFT", screen[i][1], -screen[i][2])
-            b:Show()
+            local b = stop(nums[i], canvas)
+            local x, y = screen[i][1], screen[i][2]
+            if x < -m or x > view.w + m or y < -m or y > view.h + m then
+                hideStop(b)
+            else
+                b.number, b.note = nums[i], p.note
+                b.num:SetText(tostring(nums[i]))
+                b:EnableMouse(p.note ~= nil)
+                b:ClearAllPoints()
+                b:SetPoint("CENTER", canvas, "TOPLEFT", x, -y)
+                b:Show()
+            end
         end
     end
+    hideFrom(math.max(#pts, 1), n + 1)
 end
