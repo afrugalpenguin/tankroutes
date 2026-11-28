@@ -22,6 +22,16 @@ describe("Geometry", function()
             assert.near(16, ex, 1e-9)
             assert.near(32, ey, 1e-9)
         end)
+
+        it("uses absolute values for oblique and negative angles", function()
+            local diag = (64 + 32) * math.sqrt(0.5) / 2
+            local ex, ey = G.HalfExtents(64, 32, -math.pi / 4)
+            assert.near(diag, ex, 1e-9)
+            assert.near(diag, ey, 1e-9)
+            ex, ey = G.HalfExtents(64, 32, math.pi)
+            assert.near(32, ex, 1e-9)
+            assert.near(16, ey, 1e-9)
+        end)
     end)
 
     describe("Bounds", function()
@@ -31,6 +41,14 @@ describe("Geometry", function()
                 { 2, 150, 260, 40, 40, 0, 0 },
             }
             assert.same({ 90, 195, 170, 280 }, G.Bounds(rooms))
+        end)
+
+        it("uses the rotated size", function()
+            local b = G.Bounds({ { 1, 0, 0, 64, 32, math.pi / 2, 0 } })
+            assert.near(-16, b[1], 1e-9)
+            assert.near(-32, b[2], 1e-9)
+            assert.near(16, b[3], 1e-9)
+            assert.near(32, b[4], 1e-9)
         end)
 
         it("returns nil for no rooms", function()
