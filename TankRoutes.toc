@@ -8,3 +8,10 @@
 ## IconTexture: Interface\Icons\INV_Shield_06
 
 Core.lua
+Core/Geometry.lua
+Core/Route.lua
+Data/Maps.lua
+Data/Routes.lua
+UI/MapWindow.lua
+UI/RouteLayer.lua
+UI/Slash.lua
