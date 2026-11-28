@@ -46,6 +46,39 @@ function G.ToScreen(u, v, view)
     return (u - view.cu) * view.k + view.w / 2, (v - view.cv) * view.k + view.h / 2
 end
 
+-- Screen pixels back to map coordinates (the inverse of ToScreen).
+function G.ToMap(x, y, view)
+    return (x - view.w / 2) / view.k + view.cu, (y - view.h / 2) / view.k + view.cv
+end
+
+-- Distance from (x, y) to the segment a..b.
+local function segmentDistance(x, y, a, b)
+    local dx, dy = b[1] - a[1], b[2] - a[2]
+    local len2 = dx * dx + dy * dy
+    local t = 0
+    if len2 > 0 then
+        t = math.max(0, math.min(1, ((x - a[1]) * dx + (y - a[2]) * dy) / len2))
+    end
+    local px, py = a[1] + t * dx - x, a[2] + t * dy - y
+    return math.sqrt(px * px + py * py)
+end
+
+-- The segment (pts[i] to pts[i + 1]) closest to (x, y), as i and its distance,
+-- or nil when none is within maxDist. pts entries are { x, y }, or false when not drawn.
+function G.NearestSegment(pts, x, y, maxDist)
+    local best, bestD
+    for i = 1, #pts - 1 do
+        local a, b = pts[i], pts[i + 1]
+        if a and b then
+            local d = segmentDistance(x, y, a, b)
+            if d <= maxDist and (not bestD or d < bestD) then
+                best, bestD = i, d
+            end
+        end
+    end
+    return best, bestD
+end
+
 -- Move the view by a drag of dx, dy pixels (x right, y down).
 function G.Pan(view, dx, dy)
     view.cu = view.cu - dx / view.k
@@ -85,4 +118,9 @@ end
 -- A 0 to 1 position on painted art (0, 0 top-left) in art pixels.
 function G.ArtToMap(x, y)
     return x * G.ART_W, y * G.ART_H
+end
+
+-- Art pixels back to a 0 to 1 position (the inverse of ArtToMap).
+function G.MapToArt(u, v)
+    return u / G.ART_W, v / G.ART_H
 end
