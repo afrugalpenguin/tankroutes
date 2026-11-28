@@ -118,7 +118,14 @@ local function onUpdate()
     if not dragging or not view then
         return
     end
+    if not IsMouseButtonDown("LeftButton") then
+        dragging = nil
+        return
+    end
     local x, y = cursor()
+    if x == dragging.x and y == dragging.y then
+        return
+    end
     -- cursor y grows upward; Pan takes y growing downward
     G.Pan(view, x - dragging.x, dragging.y - y)
     dragging.x, dragging.y = x, y
@@ -129,6 +136,7 @@ local function create()
     frame = CreateFrame("Frame", "TankRoutesWindow", UIParent)
     frame:SetFrameStrata("MEDIUM")
     frame:SetClampedToScreen(true)
+    frame:EnableMouse(true)
     frame:SetMovable(true)
     frame:SetResizable(true)
     if frame.SetResizeBounds then
@@ -182,6 +190,7 @@ local function create()
     end)
     viewport:SetScript("OnMouseUp", function() dragging = nil end)
     viewport:SetScript("OnUpdate", onUpdate)
+    viewport:SetScript("OnHide", function() dragging = nil end)
 
     canvas = CreateFrame("Frame", nil, viewport)
     canvas:SetAllPoints()
@@ -192,6 +201,7 @@ local function create()
     local grip = CreateFrame("Button", nil, frame)
     grip:SetSize(14, 14)
     grip:SetPoint("BOTTOMRIGHT")
+    grip:SetFrameLevel(viewport:GetFrameLevel() + 10)
     grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
     grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
     grip:SetScript("OnMouseUp", function() frame:StopMovingOrSizing(); saveGeometry() end)
@@ -240,10 +250,10 @@ function W.ShowMap(id, displayName)
         local turn = G.QuarterTurn(r[6] or 0)
         roomTurns[i] = turn or false
         if turn then
-            tex:SetTexCoord(unpack(TURNS[turn]))
             if tex.SetRotation then
                 tex:SetRotation(0)
             end
+            tex:SetTexCoord(unpack(TURNS[turn]))
         else
             tex:SetTexCoord(0, 1, 0, 1)
             if tex.SetRotation then
