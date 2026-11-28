@@ -56,3 +56,13 @@ end
 function G.Zoom(view, factor, minK, maxK)
     view.k = math.max(minK, math.min(maxK, view.k * factor))
 end
+
+-- The number of quarter turns (0..3) when angle is within half a degree of one, else nil.
+function G.QuarterTurn(angle)
+    local q = angle / (math.pi / 2)
+    local nearest = math.floor(q + 0.5)
+    if math.abs(q - nearest) * 90 > 0.5 then
+        return nil
+    end
+    return nearest % 4
+end

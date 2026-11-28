@@ -14,6 +14,15 @@ local MARGIN = 0.06
 
 local frame, viewport, canvas, title, emptyText
 local roomTextures = {}
+local roomTurns = {}   -- quarter turns per room, or false when drawn with SetRotation
+
+-- texture coordinates (upper-left, lower-left, upper-right, lower-right) for each quarter turn
+local TURNS = {
+    [0] = { 0, 0, 0, 1, 1, 0, 1, 1 },
+    [1] = { 1, 0, 0, 0, 1, 1, 0, 1 },
+    [2] = { 1, 1, 1, 0, 0, 1, 0, 0 },
+    [3] = { 0, 1, 1, 1, 0, 0, 1, 0 },
+}
 local view       -- { k, cu, cv, w, h, fitK }
 local current    -- { id, map, bounds }
 local dragging   -- { x, y } last cursor position while panning
@@ -63,7 +72,12 @@ function W.Layout()
         local tex = roomTextures[i]
         local x, y = G.ToScreen(r[2], r[3], view)
         tex:ClearAllPoints()
-        tex:SetSize(r[4] * view.k, r[5] * view.k)
+        local turn = roomTurns[i]
+        if turn and turn % 2 == 1 then
+            tex:SetSize(r[5] * view.k, r[4] * view.k)
+        else
+            tex:SetSize(r[4] * view.k, r[5] * view.k)
+        end
         tex:SetPoint("CENTER", canvas, "TOPLEFT", x, -y)
     end
     if TR.RouteLayer then
@@ -223,8 +237,18 @@ function W.ShowMap(id, displayName)
             failed = failed + 1
             setColor(tex, 0.4, 0.4, 0.4, 0.5)
         end
-        if tex.SetRotation then
-            tex:SetRotation(r[6] or 0)
+        local turn = G.QuarterTurn(r[6] or 0)
+        roomTurns[i] = turn or false
+        if turn then
+            tex:SetTexCoord(unpack(TURNS[turn]))
+            if tex.SetRotation then
+                tex:SetRotation(0)
+            end
+        else
+            tex:SetTexCoord(0, 1, 0, 1)
+            if tex.SetRotation then
+                tex:SetRotation(r[6])
+            end
         end
         tex:Show()
     end
