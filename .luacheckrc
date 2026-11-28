@@ -48,5 +48,5 @@ exclude_files = {
 files["tests/**/*.lua"] = {
     std = "+busted",
     -- specs reset mock state on these between runs
-    globals = { "DEFAULT_CHAT_FRAME" },
+    globals = { "DEFAULT_CHAT_FRAME", "TankRoutesDB" },
 }

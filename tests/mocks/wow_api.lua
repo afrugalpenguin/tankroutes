@@ -10,3 +10,11 @@ _G.DEFAULT_CHAT_FRAME = {
     messages = {},
     AddMessage = function(self, msg) table.insert(self.messages, msg) end,
 }
+
+-- Frames: enough for event registration and script handlers
+_G.CreateFrame = function()
+    return {
+        RegisterEvent = function() end,
+        SetScript = function(self, name, fn) self[name] = fn end,
+    }
+end
