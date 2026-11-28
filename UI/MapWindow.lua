@@ -112,6 +112,14 @@ local function applyRooms(rooms)
     return failed
 end
 
+-- Print how many images of the current map did not load, if any.
+local function reportFailed(failed)
+    if failed > 0 then
+        TR:Print(failed .. " of " .. #current.rooms .. " map images did not load for "
+            .. current.map.name .. ".")
+    end
+end
+
 -- Title and floor buttons for the current map.
 local function updateTitle()
     local map = current.map
@@ -180,7 +188,7 @@ function W.SetFloor(n)
     end
     current.floor = n
     current.rooms = G.ArtRooms(current.map.floors[n].path)
-    applyRooms(current.rooms)
+    reportFailed(applyRooms(current.rooms))
     updateTitle()
     W.Layout()
 end
@@ -349,11 +357,7 @@ function W.ShowMap(id, displayName)
     end
 
     emptyText:Hide()
-    local failed = applyRooms(current.rooms)
-    if failed > 0 then
-        TR:Print(failed .. " of " .. #current.rooms .. " room images did not load for "
-            .. current.map.name .. ".")
-    end
+    reportFailed(applyRooms(current.rooms))
 
     if TR.RouteLayer then
         TR.RouteLayer.SetRoute(TR.Routes and TR.Routes[id])
