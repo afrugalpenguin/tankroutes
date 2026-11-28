@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: Tank Routes
+## Notes: Dungeon map window with tank routes, for learning dungeons
+## Author: Lightborn
+## Version: @project-version@
+## SavedVariables: TankRoutesDB
+## IconTexture: Interface\Icons\INV_Shield_06
+
+Core.lua

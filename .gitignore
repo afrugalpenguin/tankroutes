@@ -1,0 +1,6 @@
+nul
+luacheck.exe
+tankroutes.zip
+docs/
+# Saved variables copied in from WoW for in-game test runs
+/TankRoutes.lua
