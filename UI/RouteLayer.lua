@@ -12,7 +12,20 @@ local STOP_SIZE = 18
 local route
 local lines, stops = {}, {}
 
+-- Hide everything drawn, and the tooltip if a stop owns it.
+local function hideAll()
+    for _, l in ipairs(lines) do l:Hide() end
+    for _, b in ipairs(stops) do
+        b:Hide()
+        if GameTooltip.IsOwned and GameTooltip:IsOwned(b) then
+            GameTooltip:Hide()
+        end
+    end
+end
+
+-- Clears the old drawing too: the no-map path sets nil without a Draw.
 function L.SetRoute(r)
+    hideAll()
     route = r
     if r then
         local ok, err = TR.Route.Validate(r)
@@ -62,13 +75,7 @@ local function stop(i, canvas)
 end
 
 function L.Draw(view)
-    for _, l in ipairs(lines) do l:Hide() end
-    for _, b in ipairs(stops) do
-        b:Hide()
-        if GameTooltip.IsOwned and GameTooltip:IsOwned(b) then
-            GameTooltip:Hide()
-        end
-    end
+    hideAll()
     if not route then
         return
     end
