@@ -28,7 +28,7 @@ describe("Painted map data", function()
             assert.is_string(a.name, "name for " .. id)
             assert.is_true(#a.floors > 0, "floors for " .. id)
             for i, f in ipairs(a.floors) do
-                assert.is_truthy(f.path:match("^Interface\WorldMap\(%a+)\%1%d+_$"),
+                assert.is_truthy(f.path:match("^Interface\\WorldMap\\(%a+)\\%1%d+_$"),
                     "map " .. id .. " floor " .. i .. ": " .. tostring(f.path))
             end
         end
