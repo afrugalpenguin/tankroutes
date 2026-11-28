@@ -3,15 +3,9 @@
 --   /tr show ID  preview the map for an instance ID (works anywhere)
 --   /tr list     list the dungeons that have a map
 --   /tr reset    restore the bundled route for the map shown (undoable)
+--   /tr auto     turn opening the map on entering a dungeon on or off
 local _, TR = ...
 TR = TR or TankRoutes
-
-local function currentInstance()
-    local name, instanceType, _, _, _, _, _, instanceID = GetInstanceInfo()
-    if instanceType == "party" or instanceType == "raid" then
-        return instanceID, name
-    end
-end
 
 function TR.HandleSlash(msg)
     local cmd, rest = msg:match("^%s*(%S*)%s*(.-)%s*$")
@@ -42,6 +36,8 @@ function TR.HandleSlash(msg)
                 TR:Print(id .. ": " .. TR.Maps[id].name .. " (rooms, " .. n .. (n == 1 and " room)" or " rooms)"))
             end
         end
+    elseif cmd == "auto" then
+        TR.ToggleAutoOpen()
     elseif cmd == "reset" then
         TR.Editor.Reset()
     elseif cmd == "" then
@@ -49,13 +45,13 @@ function TR.HandleSlash(msg)
             TR.MapWindow.Hide()
             return
         end
-        local id, name = currentInstance()
+        local id, name = TR.CurrentInstance()
         if not id then
             TR:Print("Not in a dungeon. Use /tr show <instanceID> to preview a map.")
             return
         end
         TR.MapWindow.ShowMap(id, name)
     else
-        TR:Print("Commands: /tr, /tr show <instanceID>, /tr list, /tr reset")
+        TR:Print("Commands: /tr, /tr show <instanceID>, /tr list, /tr reset, /tr auto")
     end
 end
