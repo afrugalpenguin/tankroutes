@@ -13,4 +13,8 @@ Status: early development, not yet released.
 
 ## Credits
 
-Dungeon map layouts for classic dungeons come from Forever Simple World Map by Tarolg (MIT). The room images are the game client's own minimap textures.
+Dungeon map layouts come from Forever Simple World Map 0.30.2 by Tarolg (MIT), via OneForAll by Smoergi (GPL-3.0-or-later). The room images are the game client's own minimap textures. See `THIRD_PARTY_LICENSES.txt`.
+
+## Licence
+
+GPL-3.0-or-later. See `LICENSE`.
