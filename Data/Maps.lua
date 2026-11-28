@@ -2,7 +2,7 @@
 -- Room layouts from Forever Simple World Map 0.30.2 by Tarolg (MIT), via OneForAll 6.3.0 by
 -- Smoergi (GPL-3.0-or-later). See THIRD_PARTY_LICENSES.txt. The room images are the game
 -- client's own minimap textures. Coordinates are world yards (u east, v south).
--- Maps[instanceID] = { name, rooms = { { fileID, u, v, width, height, angle, sublevel } } }
+-- Maps[instanceID] = { name = "...", rooms = { { fileID, u, v, width, height, angle, sublevel } } }
 local _, TR = ...
 TR = TR or TankRoutes
 

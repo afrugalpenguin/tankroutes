@@ -11,6 +11,9 @@ import sys
 MIT_IDS = [33, 34, 36, 43, 47, 70, 90, 109, 129, 189, 209, 229, 230, 249, 289,
            329, 349, 389, 429, 2959, 2998, 2999, 3065]
 RESTRICTED_IDS = {48, 2970, 2974, 2994, 3001, 3039}
+# MIT_IDS was checked against this OneForAll release's licence notes (its
+# THIRD_PARTY_LICENSES.txt and the DungeonMaps.lua header).
+AUDITED_VERSION = "6.3.0"
 
 ENTRY_RE = re.compile(r"^\s*\[(\d+)\]\s*=\s*\{\s*--\s*(.+?)\s*$")
 TILES_RE = re.compile(r"^\s*tiles\s*=\s*\{(.*)\},?\s*$")
@@ -25,7 +28,7 @@ HEADER = """\
 -- Room layouts from Forever Simple World Map 0.30.2 by Tarolg (MIT), via OneForAll {version} by
 -- Smoergi (GPL-3.0-or-later). See THIRD_PARTY_LICENSES.txt. The room images are the game
 -- client's own minimap textures. Coordinates are world yards (u east, v south).
--- Maps[instanceID] = {{ name, rooms = {{ {{ fileID, u, v, width, height, angle, sublevel }} }} }}
+-- Maps[instanceID] = {{ name = "...", rooms = {{ {{ fileID, u, v, width, height, angle, sublevel }} }} }}
 local _, TR = ...
 TR = TR or TankRoutes
 
@@ -48,11 +51,15 @@ def read_version(src):
 
 def parse(path):
     maps = {}
+    seen = set()
     current = None
     with open(path, encoding="utf-8") as f:
         for line in f:
             m = ENTRY_RE.match(line)
             if m:
+                if int(m.group(1)) in seen:
+                    sys.exit(f"ERROR: instance {m.group(1)} appears more than once in {path}")
+                seen.add(int(m.group(1)))
                 current = (int(m.group(1)), re.sub(r"\s*\(.*\)$", "", m.group(2)))
                 continue
             t = TILES_RE.match(line)
@@ -72,6 +79,10 @@ def lua_string(s):
 
 def main(src, dst):
     version = read_version(src)
+    if version != AUDITED_VERSION:
+        sys.exit(f"ERROR: OneForAll is {version} but MIT_IDS was audited against "
+                 f"{AUDITED_VERSION}. Re-check MIT_IDS and RESTRICTED_IDS against the new "
+                 f"release's licence notes, then update AUDITED_VERSION.")
     maps = parse(src)
     out = [HEADER.format(version=version)]
     for map_id in MIT_IDS:
