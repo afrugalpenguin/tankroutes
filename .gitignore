@@ -4,3 +4,6 @@ tankroutes.zip
 docs/
 # Saved variables copied in from WoW for in-game test runs
 /TankRoutes.lua
+
+# CurseForge project description (paste into the CF page by hand)
+CURSEFORGE.md
