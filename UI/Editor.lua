@@ -19,6 +19,7 @@ local drag       -- { index, x, y, moved, route } while a point is pressed
 local noteBox
 local driver = CreateFrame("Frame")
 local keys = CreateFrame("Frame", nil, UIParent)
+keys:Hide()
 
 local function db()
     TankRoutesDB = TankRoutesDB or {}
@@ -238,6 +239,7 @@ function ED.SetActive(on)
     if keys.SetPropagateKeyboardInput then
         if on then keys:SetPropagateKeyboardInput(true) end
         keys:EnableKeyboard(on)
+        if on then keys:Show() else keys:Hide() end
     end
     TR.MapWindow.SetEditing(on)
     TR.RouteLayer.SetEditing(on)
